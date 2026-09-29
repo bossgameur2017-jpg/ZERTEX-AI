@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZERTEX AI</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e2f;
+            color: #ffffff;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            background-color: #2b2b40;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-bottom: 1px solid #3f3f5f;
+        }
+        #chat-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        .message {
+            padding: 12px 18px;
+            border-radius: 10px;
+            max-width: 75%;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #4e44ce;
+            align-self: flex-end;
+        }
+        .ai-message {
+            background-color: #3a3a5c;
+            align-self: flex-start;
+        }
+        #input-container {
+            padding: 20px;
+            background-color: #2b2b40;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            border-top: 1px solid #3f3f5f;
+        }
+        input {
+            flex: 1;
+            max-width: 620px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #4f4f7f;
+            background-color: #1e1e2f;
+            color: white;
+            font-size: 1rem;
+        }
+        button {
+            padding: 12px 20px;
+            background-color: #4e44ce;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #5e54ee;
+        }
+        #mic-btn {
+            background-color: #3a3a5c;
+            font-size: 1.2rem;
+            padding: 10px 14px;
+        }
+        #mic-btn.listening {
+            background-color: #e74c3c;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>ZERTEX AI</header>
+
+    <div id="chat-container">
+        <div class="message ai-message">Bonjour ! Je suis ZERTEX AI. Tu peux m'écrire, utiliser le micro pour parler, et je te répondrai à voix haute !</div>
+    </div>
+
+    <div id="input-container">
+        <button id="mic-btn" onclick="toggleSpeechRecognition()" title="Parler au micro">🎙️</button>
+        <input type="text" id="user-input" placeholder="Écris ou dicte ton message..." onkeypress="handleKeyPress(event)">
+        <button onclick="sendMessage()">Envoyer</button>
+    </div>
+
+    <script>
+        let recognition;
+        let isListening = false;
+
+        // Configuration de la reconnaissance vocale (Speech-to-Text)
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'fr-FR';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = function(event) {
+                const speechResult = event.results[0][0].transcript;
+                document.getElementById("user-input").value = speechResult;
+                stopListeningVisual();
+                sendMessage(); // Envoie automatiquement le message dicté
+            };
+
+            recognition.onerror = function(event) {
+                stopListeningVisual();
+            };
+
+            recognition.onend = function() {
+                stopListeningVisual();
+            };
+        }
+
+        function toggleSpeechRecognition() {
+            if (!recognition) {
+                alert("La reconnaissance vocale n'est pas supportée par ton navigateur.");
+                return;
+            }
+
+            if (isListening) {
+                recognition.stop();
+                stopListeningVisual();
+            } else {
+                recognition.start();
+                startListeningVisual();
+            }
+        }
+
+        function startListeningVisual() {
+            isListening = true;
+            document.getElementById("mic-btn").classList.add("listening");
+            document.getElementById("user-input").placeholder = "Écoute en cours... Parle maintenant !";
+        }
+
+        function stopListeningVisual() {
+            isListening = false;
+            document.getElementById("mic-btn").classList.remove("listening");
+            document.getElementById("user-input").placeholder = "Écris ou dicte ton message...";
+        }
+
+        // Fonction pour faire parler l'IA à haute voix (Text-to-Speech)
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'fr-FR';
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function sendMessage() {
+            const inputField = document.getElementById("user-input");
+            const messageText = inputField.value.trim();
+            if (messageText === "") return;
+
+            appendMessage(messageText, "user-message");
+            inputField.value = "";
+
+            setTimeout(() => {
+                let aiResponse = "Je suis ZERTEX AI et je suis prêt à t'aider !";
+                const lowerCaseMsg = messageText.toLowerCase();
+
+                if (lowerCaseMsg.includes("coin de kin")) {
+                    aiResponse = "Coin de Kin est une application congolaise.";
+                }
+
+                appendMessage(aiResponse, "ai-message");
+                speakText(aiResponse);
+            }, 500);
+        }
+
+        function appendMessage(text, className) {
+            const chatContainer = document.getElementById("chat-container");
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `message ${className}`;
+            messageDiv.textContent = text;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        }
+    </script>
+
+</body>
+</html>
